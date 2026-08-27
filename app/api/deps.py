@@ -16,6 +16,7 @@ from app.asr.registry import ASRRegistry
 from app.core.config import Settings, settings
 from app.core.security import AuthProvider, RateLimiter
 from app.quran.repository import QuranRepository
+from app.recitations.repository import RecitationRepository
 from app.quran.verse_locator import VerseLocator
 from app.pronunciation.analyzer import PronunciationAnalyzer
 from app.pronunciation.muaalem import MuaalemRecognizer
@@ -65,6 +66,11 @@ def get_pronunciation() -> PronunciationAnalyzer:
     return PronunciationAnalyzer(MuaalemRecognizer(device=get_settings().device))
 
 
+@lru_cache(maxsize=1)
+def get_recitations() -> RecitationRepository:
+    return RecitationRepository(get_settings().recitations_dir)
+
+
 def get_engine(tier: Tier = Tier.COMMITTED) -> ASREngine:
     return get_registry().get(tier)
 
@@ -95,6 +101,7 @@ def reset_caches() -> None:
     for fn in (
         get_settings, get_repository, get_locator, get_registry,
         get_auth, get_rate_limiter, get_session_store, get_pronunciation,
+        get_recitations,
     ):
         clear = getattr(fn, "cache_clear", None)
         if clear is not None:

@@ -229,3 +229,44 @@ class TajweedResponse(BaseModel):
 class TajweedRulesResponse(BaseModel):
     rules: list[TajweedRuleOut]
     verification_summary: dict[str, int]
+
+
+# ── Verified recitation audio (Phase 10) ──────────────────────────────────────
+
+
+class ReciterOut(BaseModel):
+    id: str
+    name_en: str
+    name_ar: str
+    style: str
+    riwaya: str
+    source: str
+    licence: str = Field(..., description="verified | unknown | restricted")
+    licence_note: str
+    cached_ayat: int = Field(0, description="How many ayat are cached locally")
+
+
+class RecitationOut(BaseModel):
+    surah: int
+    ayah: int
+    reciter: str
+    reciter_name: str
+    audio_url: str
+    served_locally: bool = Field(
+        ..., description="False means the URL points at the original source"
+    )
+    size_bytes: int | None = None
+    licence: str
+    licence_note: str
+
+
+class ReciterListOut(BaseModel):
+    reciters: list[ReciterOut]
+    default: str
+    serve_unverified_audio: bool = Field(
+        ...,
+        description=(
+            "When false, audio whose licence is unverified is never served from "
+            "this server even if cached locally."
+        ),
+    )

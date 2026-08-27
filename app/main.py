@@ -18,7 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.deps import get_locator, get_registry, get_settings
 from app.api.routes import (
-    health, pronunciation, quran, recitation, sessions, tajweed,
+    health, pronunciation, quran, recitation, recitations, sessions, tajweed,
 )
 from app.streaming import websocket as streaming_ws
 from app.core.errors import APIError, api_error_handler, unhandled_error_handler
@@ -96,6 +96,7 @@ def create_app() -> FastAPI:
             {"name": "quran", "description": "Canonical Quran reference data"},
             {"name": "recitation", "description": "Analysis and verse detection"},
             {"name": "tajweed", "description": "Tajweed rules and where they apply"},
+            {"name": "recitations", "description": "Verified recitation audio"},
             {"name": "sessions", "description": "Session lifecycle for streaming"},
         ],
     )
@@ -110,13 +111,18 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_error_handler)
 
     for module in (
-        health, quran, recitation, pronunciation, tajweed, sessions, streaming_ws,
+        health, quran, recitation, pronunciation, tajweed, recitations,
+        sessions, streaming_ws,
     ):
         app.include_router(module.router, prefix=config.api_prefix)
 
     # The demo UI is served from the API itself, which keeps it same-origin and,
     # more importantly, on a secure context - browsers refuse microphone access
     # from file:// pages. Mounted last so it never shadows an API route.
+    audio = config.recitations_dir
+    if audio.is_dir():
+        app.mount("/audio", StaticFiles(directory=str(audio)), name="audio")
+
     web = Path(__file__).resolve().parents[1] / "web"
     if web.is_dir():
         app.mount("/", StaticFiles(directory=str(web), html=True), name="web")

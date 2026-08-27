@@ -89,6 +89,15 @@ class Settings(BaseSettings):
     madd_mottasel_waqf: int = 4
     madd_aared_len: int = 4
 
+    # ─── Recitation audio (Phase 10) ──────────────────────────────────────
+    recitations_dir: Path = Path("./data/recitations")
+
+    #: Serve locally cached recitations whose licence has not been verified.
+    #: Off by default: a recitation is a performance carrying the reciter's and
+    #: publisher's rights, and no source found publishes per-recitation licences.
+    #: Turning this on is a deliberate decision, not an accident.
+    serve_unverified_audio: bool = False
+
     store_audio: bool = False
     log_level: str = "INFO"
 

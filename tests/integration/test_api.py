@@ -452,3 +452,37 @@ class TestTajweed:
 
     def test_unknown_ayah_is_404(self, client):
         assert client.get("/api/v1/surahs/1/ayahs/99/tajweed").status_code == 404
+
+
+class TestRecitations:
+    def test_lists_reciters_with_licence_status(self, client):
+        body = client.get("/api/v1/reciters").json()
+        assert body["reciters"]
+        for reciter in body["reciters"]:
+            assert reciter["licence"] in {"verified", "unknown", "restricted"}
+            assert reciter["licence_note"]
+
+    def test_serving_unverified_audio_is_disabled_by_default(self, client):
+        assert client.get("/api/v1/reciters").json()["serve_unverified_audio"] is False
+
+    def test_returns_a_recitation_with_its_licence(self, client):
+        body = client.get("/api/v1/recitations/1/2").json()
+        assert body["audio_url"]
+        assert body["licence"]
+        assert body["licence_note"]
+        assert "reciter_name" in body
+
+    def test_a_specific_reciter_can_be_chosen(self, client):
+        body = client.get("/api/v1/recitations/1/2?reciter=alafasy").json()
+        assert body["reciter"] == "alafasy"
+
+    def test_unknown_reciter_is_404(self, client):
+        assert client.get("/api/v1/recitations/1/2?reciter=nobody").status_code == 404
+
+    def test_unknown_ayah_is_404(self, client):
+        assert client.get("/api/v1/recitations/1/99").status_code == 404
+
+    def test_no_tts_is_ever_offered(self, client):
+        """Mode B returns recorded performances, never synthesis."""
+        body = str(client.get("/api/v1/recitations/1/2").json()).lower()
+        assert "tts" not in body and "synthes" not in body
