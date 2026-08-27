@@ -62,7 +62,14 @@ class ASRRegistry:
             engine.unload()
 
     def describe(self) -> list[dict[str, str]]:
-        """For GET /health - which model and device is actually in use."""
+        """For GET /health - which tiers exist, and whether they are loaded.
+
+        Constructs any tier not yet built. That is cheap - constructing an engine
+        does not load or download a model - and it means /health reports the real
+        configuration before the first request rather than an empty list.
+        """
+        for tier in (Tier.PROVISIONAL, Tier.COMMITTED):
+            self.get(tier)
         return [
             {
                 **engine.describe().public(),

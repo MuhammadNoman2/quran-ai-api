@@ -26,8 +26,36 @@ class Settings(BaseSettings):
     confirm_strategy: str = "agreement"
     word_conf_min: float = 0.90
 
+    # ─── API ──────────────────────────────────────────────────────────────
+    api_prefix: str = "/api/v1"
+    cors_origins: list[str] = ["*"]
+
+    #: Load models during startup instead of on the first request. Off by
+    #: default so tests and `--reload` stay fast; turn on in production.
+    preload_models: bool = False
+
+    # ─── Limits (see docs/architecture.md 9) ──────────────────────────────
+    max_audio_bytes: int = 25 * 1024 * 1024
+    max_audio_seconds: float = 300.0
+    max_session_seconds: float = 1800.0
+
+    #: Comma-separated keys. Empty disables authentication, which is the
+    #: correct default for local development and wrong for production.
+    api_keys: str = ""
+
+    #: Requests per minute per key. 0 disables limiting.
+    rate_limit_per_minute: int = 0
+
     store_audio: bool = False
     log_level: str = "INFO"
+
+    @property
+    def allowed_api_keys(self) -> set[str]:
+        return {k.strip() for k in self.api_keys.split(",") if k.strip()}
+
+    @property
+    def auth_enabled(self) -> bool:
+        return bool(self.allowed_api_keys)
 
     @property
     def quran_asset_path(self) -> Path:

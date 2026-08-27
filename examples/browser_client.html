@@ -1,0 +1,81 @@
+<!-- Minimal browser client: record from the microphone, POST for analysis.
+     Serve over https or localhost - getUserMedia requires a secure context. -->
+<!doctype html>
+<meta charset="utf-8">
+<title>Quran recitation - browser example</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; }
+  .word { font-size: 1.6rem; padding: .15em .3em; border-radius: .2em; }
+  .correct { background: #d7f5dd; }
+  .substituted, .missing { background: #fbd5d5; }
+  .uncertain { background: #fdf0c8; }
+  #verse { direction: rtl; line-height: 2.2; }
+</style>
+
+<h1>Recite Surah al-Fatiha, verse 2</h1>
+<button id="record">Start recording</button>
+<p id="status"></p>
+<p id="verse"></p>
+<p id="score"></p>
+
+<script>
+const BASE = "http://127.0.0.1:8000/api/v1";
+const API_KEY = null;                       // set when the server requires one
+let recorder, chunks = [];
+
+document.getElementById("record").onclick = async () => {
+  const button = document.getElementById("record");
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();
+    button.textContent = "Start recording";
+    return;
+  }
+  const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  recorder = new MediaRecorder(stream);
+  chunks = [];
+  recorder.ondataavailable = e => chunks.push(e.data);
+  recorder.onstop = () => analyse(new Blob(chunks));
+  recorder.start();
+  button.textContent = "Stop";
+  document.getElementById("status").textContent = "recording…";
+};
+
+async function analyse(blob) {
+  document.getElementById("status").textContent = "analysing…";
+  const form = new FormData();
+  form.append("audio", blob, "recitation.webm");   // the server decodes any format
+  form.append("surah", "1");
+  form.append("ayah", "2");
+
+  const response = await fetch(`${BASE}/recitation/analyze`, {
+    method: "POST",
+    body: form,
+    headers: API_KEY ? { "X-API-Key": API_KEY } : {},
+  });
+  const result = await response.json();
+  if (!response.ok) {
+    document.getElementById("status").textContent =
+      `${result.error.code}: ${result.error.message}`;
+    return;
+  }
+  render(result);
+}
+
+function render(result) {
+  document.getElementById("status").textContent = "";
+  document.getElementById("verse").innerHTML = result.words
+    // Only style a word red when the API actually confirmed a mistake.
+    // Anything in `observations` is explicitly not confirmed - showing it as an
+    // error would tell a learner they were wrong when we do not know that.
+    .filter(w => w.index !== null)
+    .map(w => {
+      const confirmed = result.errors.some(e => e.index === w.index);
+      const cls = confirmed ? w.status : (w.band === "uncertain" ? "uncertain" : "correct");
+      return `<span class="word ${cls}">${w.expected}</span>`;
+    })
+    .join(" ");
+  document.getElementById("score").textContent =
+    `Word accuracy: ${result.word_accuracy_score}` +
+    (result.observations.length ? `  (${result.observations.length} unconfirmed observation(s))` : "");
+}
+</script>

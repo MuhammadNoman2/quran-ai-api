@@ -4,8 +4,8 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 4 complete** (Quran data, normalization, ASR, verse detection,
-word alignment and error detection).
+**Status: Phase 5 complete** — the API is usable. Quran data, normalization, ASR,
+verse detection, word-level error detection, and the REST endpoints.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -14,6 +14,7 @@ See `docs/` for the model selection, architecture and cost analysis.
 |---|---|
 | [`docs/model-selection.md`](docs/model-selection.md) | Models evaluated, benchmarks actually run, licences, risks |
 | [`docs/architecture.md`](docs/architecture.md) | Layering, ASR abstraction, alignment, streaming design |
+| [`docs/api.md`](docs/api.md) | Endpoints, response shape, error codes, latency |
 | [`docs/cost-and-deployment.md`](docs/cost-and-deployment.md) | GPU/CPU costs, hosting, scaling ladder |
 
 ## Requirements
@@ -37,6 +38,7 @@ cp .env.example .env
 python scripts/prepare_quran_data.py
 scripts/test_recitation.py
 scripts/evaluate_recitation.py
+examples/               python + browser clients
 ```
 
 **Windows (PowerShell)**
@@ -56,15 +58,36 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 196 fast tests, no model download
+pytest            # 238 fast tests, no model download
 pytest -m slow    # 36 integration tests against the real models (~220 MB first run)
 ```
+
+## Running the API
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Interactive docs at <http://127.0.0.1:8000/docs>. A quick check:
+
+```bash
+curl -s localhost:8000/api/v1/health
+curl -s -X POST localhost:8000/api/v1/recitation/analyze \
+  -F audio=@data/test_audio/correct/001_002_husary_1.mp3 -F surah=1 -F ayah=2
+```
+
+See [`docs/api.md`](docs/api.md), and `examples/` for a Python and a browser client.
+
+**Integrating?** `errors` are mistakes we are confident about; `observations` are
+things we are *not* confident about. Never render `observations` as mistakes — that
+re-introduces the false-correction problem the server works to prevent.
 
 ## Transcribing a recitation
 
 ```bash
 python scripts/test_recitation.py
-scripts/evaluate_recitation.py \
+scripts/evaluate_recitation.py
+examples/               python + browser clients \
   --audio data/test_audio/correct/001_002_husary_1.mp3 --surah 1 --ayah 2
 ```
 
@@ -76,6 +99,7 @@ confidence gate; it does **not** judge the reciter - use the evaluation script f
 
 ```bash
 python scripts/evaluate_recitation.py
+examples/               python + browser clients
 ```
 
 Reports word accuracy, substitution/deletion/insertion rates and - the number that
@@ -100,6 +124,14 @@ app/
   alignment/
     base.py               ExpectedWord, SpokenWord, AlignmentResult
     word_alignment.py     Needleman-Wunsch over word tokens
+  api/
+    deps.py               shared singletons: repo, index, engines
+    routes/               health, quran, recitation, sessions
+  core/
+    errors.py             structured error codes
+    logging.py            JSON logs; never audio
+    security.py           API-key auth and rate limiting
+  streaming/session.py    session store with a hard capacity limit
   recitation/
     confidence.py         the gates that prevent false corrections
     scoring.py            deterministic word-accuracy score
@@ -110,6 +142,7 @@ data/test_audio/          evaluation corpus (see its README)
 scripts/prepare_quran_data.py
 scripts/test_recitation.py
 scripts/evaluate_recitation.py
+examples/               python + browser clients
 tests/unit/  tests/integration/
 docs/
 ```
