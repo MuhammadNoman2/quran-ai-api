@@ -4,7 +4,7 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 1 complete** (Quran data layer + Arabic normalization).
+**Status: Phase 2 complete** (Quran data, Arabic normalization, offline ASR).
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -34,6 +34,7 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env
 python scripts/prepare_quran_data.py
+scripts/test_recitation.py
 ```
 
 **Windows (PowerShell)**
@@ -53,15 +54,30 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest
+pytest            # 85 fast tests, no model download
+pytest -m slow    # 18 integration tests against the real models (~220 MB first run)
 ```
 
-46 tests currently cover Arabic normalization and Quran data integrity.
+## Transcribing a recitation
+
+```bash
+python scripts/test_recitation.py \
+  --audio data/test_audio/correct/001_002_husary_1.mp3 --surah 1 --ayah 2
+```
+
+Add `--tier provisional` for the fast tiny model, or `--json` for machine-readable
+output. The script reports what the model heard and which words fall below the
+confidence gate; it does **not** judge the reciter - that is Phase 4.
 
 ## Project layout
 
 ```
 app/
+  asr/
+    base.py               ASREngine interface, ASRResult, tiers
+    whisper_engine.py     the only module that imports faster_whisper
+    registry.py           one shared engine per tier
+  audio/decoder.py        PyAV decoding to 16 kHz mono float32
   core/config.py          environment-driven settings
   models/schemas.py       versioned Pydantic models
   quran/
@@ -70,7 +86,8 @@ app/
 data/quran/quran.json     prepared asset (git-ignored, built by script)
 data/test_audio/          evaluation corpus (see its README)
 scripts/prepare_quran_data.py
-tests/unit/
+scripts/test_recitation.py
+tests/unit/  tests/integration/
 docs/
 ```
 
