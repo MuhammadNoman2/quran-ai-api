@@ -1,0 +1,18 @@
+# Runtime. Pins that matter are explained in docs/model-selection.md.
+fastapi>=0.116
+uvicorn[standard]>=0.35
+pydantic>=2.12
+pydantic-settings>=2.13
+python-multipart>=0.0.20
+
+# Quran reference data + phonetics (MIT code; bundled text is Tanzil CC-BY 3.0)
+quran-transcript>=0.6.0
+
+# ASR (Phase 2+). Torch-free by design - see model-selection.md 1.1
+faster-whisper>=1.2.1
+ctranslate2>=4.8.1
+# onnxruntime 1.23.2 is the LAST release with a macOS x86_64 wheel.
+# Do not bump on an Intel Mac; Linux/arm64 may use a newer version.
+onnxruntime>=1.23.2,<2
+soundfile>=0.12
+numpy>=2.2

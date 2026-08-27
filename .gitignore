@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+models/*
+!models/README.md
+data/quran/*.json
+data/quran/*.sqlite3
+data/test_audio/**/*.wav
+data/test_audio/**/*.mp3
+.DS_Store
