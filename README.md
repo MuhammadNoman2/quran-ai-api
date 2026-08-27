@@ -4,9 +4,9 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 8 complete** — realtime recitation, plus phoneme-level reference
-phonetics and a pronunciation pipeline that reports honestly when the acoustic
-phoneme model cannot run.
+**Status: Phase 9 complete** — realtime recitation, phoneme-level phonetics, and a
+44-rule Tajweed catalogue where every rule states how far it can actually be
+verified.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation

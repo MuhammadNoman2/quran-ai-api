@@ -166,3 +166,66 @@ class PronunciationResponse(BaseModel):
     findings: list[PronunciationFindingOut] = Field(default_factory=list)
     unavailable_reason: str | None = None
     engine: str | None = None
+
+
+# ── Tajweed (Phase 9) ─────────────────────────────────────────────────────────
+
+
+class TajweedRuleOut(BaseModel):
+    key: str
+    name_en: str
+    name_ar: str
+    category: str
+    verification: str = Field(
+        ...,
+        description=(
+            "measured = the rule is named and its count compared; "
+            "positional = a phoneme difference at the right place, suggestive only; "
+            "occurrence_only = we can locate it but cannot verify performance; "
+            "not_detectable = it produces no audible evidence at all"
+        ),
+    )
+    definition: str
+    note: str | None = None
+
+
+class TajweedOccurrenceOut(BaseModel):
+    rule: str
+    name_en: str
+    name_ar: str
+    verification: str
+    uthmani_word_index: int
+    word_indices: list[int] = Field(
+        ..., description="Imlaey word indices, matching analysis results"
+    )
+    word: str
+
+
+class TajweedCheckOut(BaseModel):
+    rule: str
+    name_en: str
+    word_indices: list[int]
+    status: str = Field(..., description="kept | possibly_missed | missed | not_checked")
+    confidence: str = Field(..., description="measured | positional | none")
+    detail: str | None = None
+
+
+class TajweedResponse(BaseModel):
+    surah: int
+    ayah: int
+    verified: bool = Field(
+        ...,
+        description=(
+            "False means only occurrences were computed. `checks` being empty "
+            "then means 'not checked', NOT 'all rules kept'."
+        ),
+    )
+    occurrences: list[TajweedOccurrenceOut]
+    rule_counts: dict[str, int]
+    checks: list[TajweedCheckOut] = Field(default_factory=list)
+    unavailable_reason: str | None = None
+
+
+class TajweedRulesResponse(BaseModel):
+    rules: list[TajweedRuleOut]
+    verification_summary: dict[str, int]

@@ -17,7 +17,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api.deps import get_locator, get_registry, get_settings
-from app.api.routes import health, pronunciation, quran, recitation, sessions
+from app.api.routes import (
+    health, pronunciation, quran, recitation, sessions, tajweed,
+)
 from app.streaming import websocket as streaming_ws
 from app.core.errors import APIError, api_error_handler, unhandled_error_handler
 from app.core.logging import configure
@@ -93,6 +95,7 @@ def create_app() -> FastAPI:
             {"name": "health", "description": "Liveness and effective configuration"},
             {"name": "quran", "description": "Canonical Quran reference data"},
             {"name": "recitation", "description": "Analysis and verse detection"},
+            {"name": "tajweed", "description": "Tajweed rules and where they apply"},
             {"name": "sessions", "description": "Session lifecycle for streaming"},
         ],
     )
@@ -106,7 +109,9 @@ def create_app() -> FastAPI:
     app.add_exception_handler(APIError, api_error_handler)
     app.add_exception_handler(Exception, unhandled_error_handler)
 
-    for module in (health, quran, recitation, pronunciation, sessions, streaming_ws):
+    for module in (
+        health, quran, recitation, pronunciation, tajweed, sessions, streaming_ws,
+    ):
         app.include_router(module.router, prefix=config.api_prefix)
 
     # The demo UI is served from the API itself, which keeps it same-origin and,

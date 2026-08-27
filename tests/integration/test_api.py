@@ -418,3 +418,37 @@ class TestHealthPhonemeCapability:
         capability = client.get("/api/v1/health").json()["phoneme_analysis"]
         if capability["available"] == "false":
             assert capability["reason"]
+
+
+class TestTajweed:
+    def test_rule_catalogue_is_served(self, client):
+        body = client.get("/api/v1/tajweed/rules").json()
+        assert len(body["rules"]) > 40
+        assert set(body["verification_summary"]) >= {
+            "measured", "positional", "occurrence_only", "not_detectable"
+        }
+
+    def test_catalogue_is_honest_about_qalqalah_and_ishmam(self, client):
+        rules = {r["key"]: r for r in client.get("/api/v1/tajweed/rules").json()["rules"]}
+        assert rules["qalqala_kubra"]["verification"] == "occurrence_only"
+        assert rules["ishmam"]["verification"] == "not_detectable"
+        assert rules["ishmam"]["note"]
+
+    def test_ayah_occurrences(self, client):
+        body = client.get("/api/v1/surahs/112/ayahs/1/tajweed").json()
+        assert body["occurrences"]
+        assert body["rule_counts"]
+        assert {o["rule"] for o in body["occurrences"]} >= {"qalqala_kubra", "lam_shamsiyyah"}
+
+    def test_occurrences_are_not_claimed_as_verified(self, client):
+        body = client.get("/api/v1/surahs/1/ayahs/2/tajweed").json()
+        assert body["verified"] is False
+        assert body["checks"] == []
+        assert body["unavailable_reason"]
+
+    def test_arabic_names_are_present(self, client):
+        body = client.get("/api/v1/surahs/112/ayahs/1/tajweed").json()
+        assert all(o["name_ar"] for o in body["occurrences"])
+
+    def test_unknown_ayah_is_404(self, client):
+        assert client.get("/api/v1/surahs/1/ayahs/99/tajweed").status_code == 404

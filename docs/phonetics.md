@@ -83,3 +83,40 @@ only from this pipeline, only when a phoneme model actually ran.
 A near-miss in the text pipeline — `قل` heard as `كل` — is reported as
 `possible_pronunciation_error` with no score penalty. That is a *hypothesis*
 awaiting phoneme evidence, not a verdict.
+
+
+## The Tajweed rule catalogue
+
+`GET /api/v1/tajweed/rules` lists 44 rules, each with an English and Arabic name,
+a definition, and — the part that matters — a **verification status** stating how
+far this system can actually check it. Every status was assigned by testing what
+happens when the rule is violated, not by assumption.
+
+| Status | Count | Meaning |
+|---|---|---|
+| `measured` | 10 | The engine names the rule and compares counts. The madd family and doubled ghunnah. |
+| `positional` | 28 | A phoneme difference landed where the rule applies. Suggestive, **never** conclusive. |
+| `occurrence_only` | 5 | We can say where it applies but cannot check performance. |
+| `not_detectable` | 1 | No audible evidence exists at all. |
+
+Three findings behind those numbers:
+
+* **Shortening a madd** produces a finding that names the rule and gives both
+  counts — "Normal Madd: expected a count of 2, heard 1". Hence `measured`.
+* **Failing an assimilation** (a clear noon where ikhfa applies) produces a phoneme
+  difference, but the engine does *not* attribute it to a rule. We correlate by
+  word position instead, so the strongest thing we say is `possibly_missed`.
+* **Removing qalqalah** from a phoneme string produces **no finding at all**.
+  Its performance cannot be verified, so it is `occurrence_only` — we can teach
+  where it applies, and say nothing about whether it was done. There is a test
+  asserting this stays true, so if the upstream engine improves, the status gets
+  revisited rather than silently drifting.
+* **Ishmam** rounds the lips without producing sound. No acoustic model can ever
+  detect it; the Muaalem paper excludes it for the same reason.
+
+`GET /surahs/{s}/ayahs/{a}/tajweed` returns where every rule applies in a verse.
+It needs no model and no audio, which makes it useful on its own as a teaching
+aid — and it is the map that pronunciation findings are correlated against.
+
+`verified: false` means nothing was checked. An empty `checks` list is **not** a
+clean bill of health.
