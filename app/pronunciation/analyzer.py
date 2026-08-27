@@ -57,9 +57,7 @@ class PronunciationAnalyzer:
 
         assert self._recognizer is not None
         try:
-            recognized = self._recognizer.recognize(
-                audio, sample_rate, reference=reference.phonemes
-            )
+            recognized = self._recognizer.recognize(audio, sample_rate, reference=reference)
         except Exception as exc:
             logger.exception("phoneme recognition failed", extra={"surah": surah, "ayah": ayah})
             return PronunciationReport(

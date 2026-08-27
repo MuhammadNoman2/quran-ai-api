@@ -124,12 +124,15 @@ class PhonemeRecognizer(ABC):
 
     @abstractmethod
     def recognize(
-        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: str | None = None
+        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: object = None
     ) -> RecognizedPhonemes:
         """Transcribe audio to phonemes.
 
-        `reference` is the expected phoneme string. The Muaalem model accepts it
-        as context; recognizers that do not need it may ignore it.
+        `reference` is the expected phonetics as a `PhoneticReference`. It is
+        passed as an object rather than a phoneme string because the Muaalem model
+        needs the phonetizer's own output, not text - flattening it here would
+        make the interface unable to serve the one model that exists.
+        Recognizers that do not need context may ignore it.
         """
 
 
@@ -161,6 +164,6 @@ class ScriptedPhonemeRecognizer(PhonemeRecognizer):
         self._loaded = True
 
     def recognize(
-        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: str | None = None
+        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: object = None
     ) -> RecognizedPhonemes:
         return RecognizedPhonemes(phonemes=self.phonemes, confidence=self.confidence)

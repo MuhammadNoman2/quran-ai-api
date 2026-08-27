@@ -41,16 +41,23 @@ def compare(reference: PhoneticReference, recognized: str) -> tuple[Pronunciatio
     an enhancement, and it must never be able to take down an analysis that
     otherwise succeeded.
     """
-    if not recognized or recognized == reference.phonemes:
+    if not recognized:
+        return ()
+
+    # An acoustic model returns phonemes with no word spaces; the reference is
+    # carried in both forms, so compare like with like. Mixing them would align a
+    # spaced string against an unspaced one and invent differences at every word
+    # boundary.
+    if " " in recognized or " " not in reference.phonemes:
+        expected, mappings = reference.phonemes, reference.mappings
+    else:
+        expected, mappings = reference.model_phonemes, reference.model_mappings
+
+    if recognized == expected:
         return ()
 
     try:
-        raw = explain_error(
-            reference.uthmani,
-            reference.phonemes,
-            recognized,
-            list(reference.mappings),
-        )
+        raw = explain_error(reference.uthmani, expected, recognized, list(mappings))
     except Exception:
         logger.exception(
             "phonetic comparison failed",

@@ -1,0 +1,81 @@
+# Profiles, because the three deployments have genuinely different needs.
+#
+#   docker compose -f docker/docker-compose.yml up api            # CPU, default
+#   docker compose -f docker/docker-compose.yml --profile phonemes up
+#   docker compose -f docker/docker-compose.yml --profile gpu up
+#
+# The named volume for /models matters: without it every recreated container
+# re-downloads roughly 220 MB of model weights.
+
+name: quran-api
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: quran-api:cpu
+    ports: ["8000:8000"]
+    environment:
+      DEVICE: cpu
+      COMPUTE_TYPE: int8
+      # Two threads per worker, three workers. Thread scaling on this workload
+      # is poor - six threads cost roughly twice the CPU of two for 1.4x the
+      # speed - so concurrency comes from workers, not from fatter workers.
+      CPU_THREADS: 2
+      NUM_WORKERS: 3
+      MAX_CONCURRENT_SESSIONS: 3
+      PRELOAD_MODELS: "true"
+      STORE_AUDIO: "false"
+      LOG_LEVEL: INFO
+    volumes:
+      - models:/models
+      - recitations:/data/recitations
+    restart: unless-stopped
+
+  phonemes:
+    profiles: ["phonemes"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.phonemes
+    image: quran-api:phonemes
+    ports: ["8001:8000"]
+    environment:
+      DEVICE: cpu
+      COMPUTE_TYPE: int8
+      CPU_THREADS: 4
+      PRELOAD_MODELS: "false"
+      STORE_AUDIO: "false"
+    volumes:
+      - models:/models
+      - recitations:/data/recitations
+    restart: unless-stopped
+
+  gpu:
+    profiles: ["gpu"]
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.phonemes
+    image: quran-api:gpu
+    ports: ["8002:8000"]
+    environment:
+      DEVICE: cuda
+      COMPUTE_TYPE: float16
+      NUM_WORKERS: 4
+      MAX_CONCURRENT_SESSIONS: 24
+      PRELOAD_MODELS: "true"
+    volumes:
+      - models:/models
+      - recitations:/data/recitations
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  models:
+  recitations:

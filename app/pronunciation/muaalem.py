@@ -23,7 +23,6 @@ import logging
 import numpy as np
 
 from app.pronunciation.base import PhonemeRecognizer, RecognizedPhonemes
-from app.pronunciation.reference import moshaf_attributes
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +90,7 @@ class MuaalemRecognizer(PhonemeRecognizer):
         logger.info("loaded phoneme model", extra={"model": self._model_id, "device": device})
 
     def recognize(
-        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: str | None = None
+        self, audio: np.ndarray, sample_rate: int = 16_000, *, reference: object = None
     ) -> RecognizedPhonemes:
         if not self.available:
             raise RuntimeError(f"phoneme recognition unavailable: {self.unavailable_reason}")
@@ -99,7 +98,12 @@ class MuaalemRecognizer(PhonemeRecognizer):
             self.load()
         assert self._model is not None
 
-        results = self._model([audio], [reference] if reference else None, sampling_rate=sample_rate)
+        # Muaalem reads `.phonemes` off the phonetizer's own output object, so a
+        # plain string is not accepted - it raised AttributeError when given one.
+        # The unspaced form: the tokenizer rejects a spaced reference outright.
+        raw = getattr(reference, "model_raw", None) or getattr(reference, "raw", None)
+        context = [raw] if raw is not None else None
+        results = self._model([audio], context, sampling_rate=sample_rate)
         first = results[0]
         return RecognizedPhonemes(
             phonemes=first.phonemes.text,

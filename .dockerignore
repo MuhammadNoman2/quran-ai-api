@@ -1,0 +1,15 @@
+.venv/
+.git/
+.run/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.vscode/
+models/
+data/quran/*.json
+data/recitations/
+data/test_audio/**/*.mp3
+data/test_audio/**/*.wav
+.env
+.DS_Store

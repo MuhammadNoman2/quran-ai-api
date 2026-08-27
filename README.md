@@ -4,9 +4,10 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 9 complete** — realtime recitation, phoneme-level phonetics, and a
-44-rule Tajweed catalogue where every rule states how far it can actually be
-verified.
+**Status: all 12 phases complete.** Quran data, Arabic normalization, offline and
+streaming ASR, verse detection, word-level error detection, phoneme and Tajweed
+analysis, verified recitation audio, benchmarks, and Docker deployment — verified
+end to end in containers.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -18,6 +19,8 @@ See `docs/` for the model selection, architecture and cost analysis.
 | [`docs/api.md`](docs/api.md) | Endpoints, response shape, error codes, latency |
 | [`docs/realtime.md`](docs/realtime.md) | WebSocket protocol, events, scheduling |
 | [`docs/phonetics.md`](docs/phonetics.md) | Phonemes, Tajweed, and what is actually detectable |
+| [`docs/deployment.md`](docs/deployment.md) | Docker images, configuration, sizing |
+| [`docs/performance.md`](docs/performance.md) | Measured benchmarks and what moves them |
 | [`docs/cost-and-deployment.md`](docs/cost-and-deployment.md) | GPU/CPU costs, hosting, scaling ladder |
 
 ## Requirements
@@ -63,7 +66,7 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 336 fast tests, no model download
+pytest            # 381 fast tests, no model download
 pytest -m slow    # 46 integration tests against the real models (~220 MB first run)
 ```
 
@@ -152,6 +155,18 @@ start                   one-command launcher \
 Add `--tier provisional` for the fast tiny model, or `--json` for machine-readable
 output. The script reports what the model heard and which words fall below the
 confidence gate; it does **not** judge the reciter - use the evaluation script for that.
+
+## Docker
+
+```bash
+docker compose -f docker/docker-compose.yml up api                # CPU, 958 MB
+docker compose -f docker/docker-compose.yml --profile phonemes up  # + phoneme model
+python scripts/smoke_test.py http://127.0.0.1:8000                 # 15 endpoint checks
+```
+
+The default image is torch-free and 958 MB. Phoneme and Tajweed *verification*
+needs PyTorch, which cannot be installed on macOS x86_64 at all, so it lives in a
+separate 2.82 GB image. See [`docs/deployment.md`](docs/deployment.md).
 
 ## Measuring accuracy
 

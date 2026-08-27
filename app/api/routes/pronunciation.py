@@ -14,9 +14,12 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile, status
 from app.api.deps import get_pronunciation, get_repository, get_settings, require_caller
 from app.core.config import Settings
 from app.core.errors import APIError, ErrorCode
-from app.models.schemas import PronunciationFindingOut, PronunciationResponse
+from app.models.schemas import (
+    PronunciationFindingOut, PronunciationResponse, TajweedCheckOut,
+)
 from app.pronunciation.analyzer import PronunciationAnalyzer
 from app.quran.repository import QuranRepository
+from app.tajweed.analyzer import TajweedAnalyzer
 
 router = APIRouter(
     prefix="/recitation", tags=["recitation"], dependencies=[Depends(require_caller)]
@@ -48,6 +51,12 @@ async def check_pronunciation(
     (a short vowel, shadda or sukun), or `tajweed` (a rule with a defined count,
     such as a madd held too briefly). Tajweed findings name the rule and the
     count expected.
+
+    `tajweed_checks` gives the per-rule outcome for every rule applying in this
+    verse. A rule is `missed` only when the phonetic engine named it and compared
+    counts; `possibly_missed` means a phoneme difference merely landed in the
+    right word, and `not_checked` means the rule's performance cannot be verified
+    at all - qalqalah, for instance. See `docs/phonetics.md`.
     """
     from app.api.routes.recitation import read_audio
 
@@ -74,6 +83,8 @@ async def check_pronunciation(
         },
     )
 
+    tajweed = TajweedAnalyzer(repo).verify(surah, ayah, report)
+
     return PronunciationResponse(
         available=report.available,
         surah=report.surah,
@@ -97,4 +108,15 @@ async def check_pronunciation(
         ],
         unavailable_reason=report.unavailable_reason,
         engine=report.engine,
+        tajweed_checks=[
+            TajweedCheckOut(
+                rule=c.occurrence.rule.key,
+                name_en=c.occurrence.rule.name_en,
+                word_indices=list(c.occurrence.word_indices),
+                status=c.status,
+                confidence=c.confidence,
+                detail=c.detail,
+            )
+            for c in tajweed.checks
+        ],
     )

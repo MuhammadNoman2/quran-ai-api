@@ -64,6 +64,26 @@ class PhoneticReference:
     sifat: tuple[SifaEntry, ...]
     mappings: tuple
     tajweed_rules: tuple[str, ...]
+    raw: object = None
+    """The phonetizer's own output object, with word spaces.
+
+    The Muaalem model takes an output object rather than a phoneme string - it
+    reads `.phonemes` off it - so the richer form has to survive as far as the
+    recognizer instead of being flattened to text here.
+    """
+
+    model_phonemes: str = ""
+    """The same phonemes without word spaces.
+
+    The acoustic model requires this form: given a spaced reference its tokenizer
+    fails outright ("Unable to create tensor…"), because the space-separated
+    phoneme string no longer lines up with the per-group sifat list. Word spaces
+    are kept in `phonemes` because that is what makes word attribution possible,
+    so both representations are carried.
+    """
+
+    model_raw: object = None
+    model_mappings: tuple = ()
 
     def word_at(self, uthmani_index: int) -> int | None:
         """Which word a character position in the Uthmani text belongs to."""
@@ -77,7 +97,9 @@ class PhoneticReference:
 def phonetics_for(surah: int, ayah: int) -> PhoneticReference:
     """Expected phonetics for one ayah. Cached - the text never changes."""
     uthmani = Aya(surah, ayah).get().uthmani
-    output = quran_phonetizer(uthmani, moshaf_attributes(), remove_spaces=False)
+    attributes = moshaf_attributes()
+    output = quran_phonetizer(uthmani, attributes, remove_spaces=False)
+    unspaced = quran_phonetizer(uthmani, attributes, remove_spaces=True)
 
     # Uthmani words and phoneme words come out in the same order, so they pair up
     # positionally. Character spans come from scanning the original text.
@@ -131,6 +153,10 @@ def phonetics_for(surah: int, ayah: int) -> PhoneticReference:
         sifat=sifat,
         mappings=tuple(output.mappings),
         tajweed_rules=tuple(rules),
+        raw=output,
+        model_phonemes=unspaced.phonemes,
+        model_raw=unspaced,
+        model_mappings=tuple(unspaced.mappings),
     )
 
 

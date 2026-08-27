@@ -166,6 +166,15 @@ class PronunciationResponse(BaseModel):
     findings: list[PronunciationFindingOut] = Field(default_factory=list)
     unavailable_reason: str | None = None
     engine: str | None = None
+    tajweed_checks: list["TajweedCheckOut"] = Field(
+        default_factory=list,
+        description=(
+            "Per-rule outcome, present only when phoneme analysis ran. A rule is "
+            "'missed' only when the engine named it and compared counts; "
+            "'possibly_missed' means a phoneme difference merely landed where the "
+            "rule applies."
+        ),
+    )
 
 
 # ── Tajweed (Phase 9) ─────────────────────────────────────────────────────────

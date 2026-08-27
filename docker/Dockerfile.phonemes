@@ -1,0 +1,55 @@
+# Phoneme and Tajweed verification image.
+#
+# Adds PyTorch and the Muaalem multi-level CTC model, which the CPU image
+# deliberately omits: torch is a multi-gigabyte dependency needed by exactly one
+# optional feature, and it cannot be installed on macOS x86_64 at all
+# (docs/model-selection.md 1.1). Keeping it in a separate image is what lets the
+# main service stay small and lets development happen on a Mac.
+#
+#   docker build -f docker/Dockerfile.phonemes -t quran-api:phonemes .
+
+FROM python:3.12-slim AS runtime
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends curl libsndfile1 \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    MODEL_PATH=/models \
+    HF_HOME=/models/hf \
+    QURAN_DATA_DIR=/app/data/quran \
+    RECITATIONS_DIR=/data/recitations
+
+WORKDIR /app
+COPY requirements.txt .
+
+# CPU-only torch: the CUDA wheels are several gigabytes larger and useless
+# without a GPU. The GPU compose profile overrides this.
+RUN pip install -r requirements.txt \
+ && pip install --index-url https://download.pytorch.org/whl/cpu torch \
+ && pip install quran-muaalem librosa "numba>=0.61.2" \
+ # transformers 5.x removed _HIDDEN_STATES_START_POSITION, which quran-muaalem
+ # imports directly, so the model fails to load at import time. Verified: 4.55,
+ # 4.56 and 4.57 all still export it; 5.16 does not. Pinned until upstream adapts.
+ && pip install "transformers>=4.55,<5"
+
+COPY app ./app
+COPY web ./web
+COPY scripts ./scripts
+RUN python scripts/prepare_quran_data.py
+
+RUN useradd --create-home --uid 10001 quran \
+ && mkdir -p /models /data/recitations \
+ && chown -R quran:quran /models /data /app
+USER quran
+
+EXPOSE 8000
+VOLUME ["/models"]
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=3 \
+  CMD curl -fs http://localhost:8000/api/v1/health || exit 1
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

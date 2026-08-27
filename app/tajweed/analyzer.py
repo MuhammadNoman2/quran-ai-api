@@ -165,10 +165,16 @@ class TajweedAnalyzer:
 
 @lru_cache(maxsize=512)
 def _occurrences(surah: int, ayah: int, repo: QuranRepository) -> tuple[RuleOccurrence, ...]:
-    from quranic_phonemizer import Phonemizer
-
+    # Degrades to "no occurrences" rather than failing the request. Tajweed
+    # annotation is one feature among many, and an optional analysis should never
+    # be able to take down an endpoint - including when the package that provides
+    # it is missing, which is exactly how the container build caught it being
+    # absent from requirements.txt.
     try:
         result = _phonemizer().phonemize(f"{surah}:{ayah}")
+    except ImportError:
+        logger.error("quranic-phonemizer is not installed; tajweed annotation disabled")
+        return ()
     except Exception:
         logger.exception("tajweed annotation failed", extra={"surah": surah, "ayah": ayah})
         return ()
