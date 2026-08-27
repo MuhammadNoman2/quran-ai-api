@@ -64,6 +64,18 @@ pytest            # 281 fast tests, no model download
 pytest -m slow    # 36 integration tests against the real models (~220 MB first run)
 ```
 
+## Running in VS Code
+
+Open the folder in VS Code. It is preconfigured (`.vscode/`):
+
+1. **Select the interpreter** — `Cmd+Shift+P` → *Python: Select Interpreter* → `./.venv/bin/python`.
+2. **Run the server** — `F5`, choose **API server (reload)**.
+3. **Open** <http://127.0.0.1:8000/docs> and try any endpoint from the browser.
+
+Other `F5` targets: *Streaming client example*, *Transcribe one file*, *Evaluate accuracy*.
+`Cmd+Shift+P` → *Tasks: Run Test Task* runs the fast suite. Breakpoints work — use
+**API server (no reload)**, since the reloader runs your code in a child process.
+
 ## Running the API
 
 ```bash
