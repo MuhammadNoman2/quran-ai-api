@@ -4,7 +4,7 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 2 complete** (Quran data, Arabic normalization, offline ASR).
+**Status: Phase 3 complete** (Quran data, normalization, offline ASR, verse detection).
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -54,7 +54,7 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 85 fast tests, no model download
+pytest            # 120 fast tests, no model download
 pytest -m slow    # 18 integration tests against the real models (~220 MB first run)
 ```
 
@@ -82,6 +82,7 @@ app/
   models/schemas.py       versioned Pydantic models
   quran/
     repository.py         read-only access to the prepared Quran asset
+    verse_locator.py      Scenario B: which verse is this? (n-gram + fuzzy)
     text_normalizer.py    the four normalization representations
 data/quran/quran.json     prepared asset (git-ignored, built by script)
 data/test_audio/          evaluation corpus (see its README)
