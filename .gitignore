@@ -11,3 +11,4 @@ data/quran/*.sqlite3
 data/test_audio/**/*.wav
 data/test_audio/**/*.mp3
 .DS_Store
+.run/

@@ -2,10 +2,23 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "start (server + browser)",
+      "type": "shell",
+      "command": "${workspaceFolder}/start",
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
       "label": "tests (fast)",
       "type": "shell",
       "command": "${workspaceFolder}/.venv/bin/python -m pytest",
-      "group": { "kind": "test", "isDefault": true },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "problemMatcher": []
     },
     {

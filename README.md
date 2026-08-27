@@ -40,7 +40,9 @@ cp .env.example .env
 python scripts/prepare_quran_data.py
 scripts/test_recitation.py
 scripts/evaluate_recitation.py
-examples/               python + browser clients
+web/                    the live demo page (served at /)
+examples/               python, streaming and browser clients
+start                   one-command launcher
 ```
 
 **Windows (PowerShell)**
@@ -63,6 +65,36 @@ python scripts\prepare_quran_data.py
 pytest            # 299 fast tests, no model download
 pytest -m slow    # 46 integration tests against the real models (~220 MB first run)
 ```
+
+## Quick start
+
+```bash
+./start
+```
+
+One command: creates the virtual environment if missing, builds the Quran data if
+missing, starts the API with models preloaded, waits until it is genuinely ready,
+and opens the live demo page. Ctrl-C stops everything.
+
+Inside the VS Code terminal you can type just `start` — the workspace folder is on
+`PATH` (see `.vscode/settings.json`).
+
+### The demo page
+
+<http://127.0.0.1:8000/> — pick a surah and ayah, press **Start reciting**, and
+recite. Words light up as you go:
+
+| | |
+|---|---|
+| amber | heard by the fast model — provisional, **never** a mistake claim |
+| green | confirmed correct |
+| red | a confirmed mistake, with what was heard shown above the word |
+| dotted | unconfirmed — deliberately *not* presented as a mistake |
+
+Deep-link a verse with `?surah=2&ayah=255`.
+
+The page needs a microphone, which browsers only allow on a secure context — that
+is why it is served by the API itself rather than opened as a file.
 
 ## Running in VS Code
 
@@ -110,7 +142,9 @@ re-introduces the false-correction problem the server works to prevent.
 ```bash
 python scripts/test_recitation.py
 scripts/evaluate_recitation.py
-examples/               python + browser clients \
+web/                    the live demo page (served at /)
+examples/               python, streaming and browser clients
+start                   one-command launcher \
   --audio data/test_audio/correct/001_002_husary_1.mp3 --surah 1 --ayah 2
 ```
 
@@ -122,7 +156,9 @@ confidence gate; it does **not** judge the reciter - use the evaluation script f
 
 ```bash
 python scripts/evaluate_recitation.py
-examples/               python + browser clients
+web/                    the live demo page (served at /)
+examples/               python, streaming and browser clients
+start                   one-command launcher
 ```
 
 Reports word accuracy, substitution/deletion/insertion rates and - the number that
@@ -171,7 +207,9 @@ data/test_audio/          evaluation corpus (see its README)
 scripts/prepare_quran_data.py
 scripts/test_recitation.py
 scripts/evaluate_recitation.py
-examples/               python + browser clients
+web/                    the live demo page (served at /)
+examples/               python, streaming and browser clients
+start                   one-command launcher
 tests/unit/  tests/integration/
 docs/
 ```

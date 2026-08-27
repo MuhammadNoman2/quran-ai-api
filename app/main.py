@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.deps import get_locator, get_registry, get_settings
 from app.api.routes import health, quran, recitation, sessions
@@ -106,6 +108,13 @@ def create_app() -> FastAPI:
 
     for module in (health, quran, recitation, sessions, streaming_ws):
         app.include_router(module.router, prefix=config.api_prefix)
+
+    # The demo UI is served from the API itself, which keeps it same-origin and,
+    # more importantly, on a secure context - browsers refuse microphone access
+    # from file:// pages. Mounted last so it never shadows an API route.
+    web = Path(__file__).resolve().parents[1] / "web"
+    if web.is_dir():
+        app.mount("/", StaticFiles(directory=str(web), html=True), name="web")
     return app
 
 

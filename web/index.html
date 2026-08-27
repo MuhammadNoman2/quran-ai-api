@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Quran Recitation — live</title>
+<link rel="stylesheet" href="/styles.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📖</text></svg>">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Quran Recitation — live</h1>
+      <div class="sub">Recite into your microphone. Words are checked as you go.</div>
+    </div>
+    <span class="pill" id="status"><i class="dot"></i><span id="statusText">Idle</span></span>
+  </header>
+
+  <div class="card">
+    <h2>Choose a verse</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="surah">Surah</label>
+        <select id="surah"></select>
+      </div>
+      <div class="field">
+        <label for="ayah">Ayah</label>
+        <input type="number" id="ayah" min="1" value="2">
+      </div>
+      <div class="field">
+        <label for="tier">Mode</label>
+        <select id="tier">
+          <option value="committed">Accurate (reports mistakes)</option>
+          <option value="provisional">Fast (display only)</option>
+        </select>
+      </div>
+      <button id="record">Start reciting</button>
+      <button id="reset" class="ghost">Reset</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>The verse</h2>
+    <div class="verse" id="verse">Pick a surah and ayah.</div>
+    <div class="meters" style="margin-top:18px">
+      <div class="bar"><i id="bar"></i></div>
+      <div id="progressText" style="font-size:12.5px;color:var(--text-muted);min-width:88px">0 / 0 words</div>
+      <div class="score"><span id="score">—</span><small>word accuracy</small></div>
+    </div>
+    <div class="legend" style="margin-top:16px">
+      <span><i class="swatch" style="background:var(--provisional-bg);border:1px solid var(--provisional)"></i> heard (provisional)</span>
+      <span><i class="swatch" style="background:var(--correct-bg);border:1px solid var(--correct)"></i> confirmed correct</span>
+      <span><i class="swatch" style="background:var(--mistake-bg);border:1px solid var(--mistake)"></i> mistake</span>
+      <span><i class="swatch" style="border-bottom:2px dotted var(--uncertain)"></i> unconfirmed — not a mistake</span>
+    </div>
+    <div class="note">
+      Provisional highlights come from the fast model and are display only — they never
+      mean you made a mistake. Only confirmed findings are reported as mistakes, and
+      anything the server is unsure about is deliberately left unmarked.
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>What the server heard</h2>
+      <div class="transcript" id="transcript">—</div>
+    </div>
+    <div class="card">
+      <h2>Events</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
