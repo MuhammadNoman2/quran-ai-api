@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.deps import get_locator, get_registry, get_settings
 from app.api.routes import health, quran, recitation, sessions
+from app.streaming import websocket as streaming_ws
 from app.core.errors import APIError, api_error_handler, unhandled_error_handler
 from app.core.logging import configure
 
@@ -103,7 +104,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(APIError, api_error_handler)
     app.add_exception_handler(Exception, unhandled_error_handler)
 
-    for module in (health, quran, recitation, sessions):
+    for module in (health, quran, recitation, sessions, streaming_ws):
         app.include_router(module.router, prefix=config.api_prefix)
     return app
 

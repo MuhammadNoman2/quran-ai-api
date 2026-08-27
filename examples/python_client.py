@@ -11,10 +11,13 @@ from __future__ import annotations
 
 import sys
 
+import os
+
 import httpx
 
-BASE_URL = "http://127.0.0.1:8000/api/v1"
-API_KEY: str | None = None
+# Override with QURAN_API_URL / QURAN_API_KEY.
+BASE_URL = os.environ.get("QURAN_API_URL", "http://127.0.0.1:8000/api/v1")
+API_KEY: str | None = os.environ.get("QURAN_API_KEY") or None
 
 
 def headers() -> dict[str, str]:

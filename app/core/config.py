@@ -23,6 +23,20 @@ class Settings(BaseSettings):
     num_workers: int = 3
 
     max_concurrent_sessions: int = 3
+
+    # ─── Streaming (Phase 6) ──────────────────────────────────────────────
+    #: How much audio to accumulate before running a recognition pass.
+    #: Inference costs ~2.5s regardless of clip length, so very short segments
+    #: waste almost the whole budget on fixed overhead. Benchmark before changing.
+    stream_segment_seconds: float = 4.0
+
+    #: Audio replayed at the start of the next segment so a word straddling a
+    #: boundary is not cut in half and misheard as a mistake.
+    stream_overlap_seconds: float = 0.75
+
+    #: Hard cap on buffered audio. Past this the oldest is dropped and the
+    #: client is warned, rather than the process growing without limit.
+    stream_max_buffer_seconds: float = 60.0
     confirm_strategy: str = "agreement"
     word_conf_min: float = 0.90
 

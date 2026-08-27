@@ -4,8 +4,9 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 5 complete** — the API is usable. Quran data, normalization, ASR,
-verse detection, word-level error detection, and the REST endpoints.
+**Status: Phase 6 complete** — REST **and** live WebSocket streaming. Quran data,
+normalization, ASR, verse detection, word-level error detection, and realtime
+recitation over a socket.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -15,6 +16,7 @@ See `docs/` for the model selection, architecture and cost analysis.
 | [`docs/model-selection.md`](docs/model-selection.md) | Models evaluated, benchmarks actually run, licences, risks |
 | [`docs/architecture.md`](docs/architecture.md) | Layering, ASR abstraction, alignment, streaming design |
 | [`docs/api.md`](docs/api.md) | Endpoints, response shape, error codes, latency |
+| [`docs/realtime.md`](docs/realtime.md) | WebSocket protocol, events, scheduling |
 | [`docs/cost-and-deployment.md`](docs/cost-and-deployment.md) | GPU/CPU costs, hosting, scaling ladder |
 
 ## Requirements
@@ -58,7 +60,7 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 238 fast tests, no model download
+pytest            # 281 fast tests, no model download
 pytest -m slow    # 36 integration tests against the real models (~220 MB first run)
 ```
 
@@ -76,7 +78,16 @@ curl -s -X POST localhost:8000/api/v1/recitation/analyze \
   -F audio=@data/test_audio/correct/001_002_husary_1.mp3 -F surah=1 -F ayah=2
 ```
 
-See [`docs/api.md`](docs/api.md), and `examples/` for a Python and a browser client.
+### Live streaming
+
+```bash
+python examples/streaming_client.py data/test_audio/correct/001_002_husary_1.mp3 1 2
+```
+
+Streams the file in 100 ms frames like a microphone and prints every event. See
+[`docs/realtime.md`](docs/realtime.md) for the protocol.
+
+See [`docs/api.md`](docs/api.md), and `examples/` for Python, streaming and browser clients.
 
 **Integrating?** `errors` are mistakes we are confident about; `observations` are
 things we are *not* confident about. Never render `observations` as mistakes — that
@@ -131,7 +142,12 @@ app/
     errors.py             structured error codes
     logging.py            JSON logs; never audio
     security.py           API-key auth and rate limiting
-  streaming/session.py    session store with a hard capacity limit
+  audio/buffer.py         bounded rolling buffer
+  streaming/
+    session.py            session store with a hard capacity limit
+    events.py             versioned WebSocket event protocol
+    manager.py            per-session state and inference scheduling
+    websocket.py          the /stream endpoint
   recitation/
     confidence.py         the gates that prevent false corrections
     scoring.py            deterministic word-accuracy score

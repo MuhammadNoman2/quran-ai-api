@@ -1,3 +1,5 @@
 -r requirements.txt
 pytest>=8
 pytest-asyncio>=0.24
+httpx>=0.28
+websockets>=13        # examples/streaming_client.py only
