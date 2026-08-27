@@ -37,22 +37,17 @@ class EventType(str, Enum):
     WARNING = "warning"
     ERROR = "error"
 
-    # ── Phase 7: declared, not yet emitted ───────────────────────────────────
+    # ── speech activity ──────────────────────────────────────────────────────
     SPEECH_STARTED = "speech_started"
     SPEECH_STOPPED = "speech_stopped"
     WORD_DETECTED = "word_detected"
     CORRECTION = "correction"
 
 
-#: Events the server does not produce yet. Tested, so this cannot drift.
-NOT_YET_EMITTED: frozenset[EventType] = frozenset(
-    {
-        EventType.SPEECH_STARTED,
-        EventType.SPEECH_STOPPED,
-        EventType.WORD_DETECTED,
-        EventType.CORRECTION,
-    }
-)
+#: Events the server does not produce yet. Empty now that Phase 7 has landed;
+#: kept because the test that enforces it is the mechanism preventing a
+#: documented-but-silent event from creeping back in.
+NOT_YET_EMITTED: frozenset[EventType] = frozenset()
 
 
 class ErrorCode(str, Enum):
@@ -97,6 +92,44 @@ def partial_transcript(text: str, *, seconds: float) -> dict[str, Any]:
     """Provisional. The text may change as more audio arrives."""
     return event(
         EventType.PARTIAL_TRANSCRIPT, text=text, audio_seconds=round(seconds, 2), final=False
+    )
+
+
+def speech_started(*, at: float) -> dict[str, Any]:
+    return event(EventType.SPEECH_STARTED, at=round(at, 3))
+
+
+def speech_stopped(*, at: float, silence_seconds: float) -> dict[str, Any]:
+    return event(
+        EventType.SPEECH_STOPPED, at=round(at, 3), silence_seconds=round(silence_seconds, 3)
+    )
+
+
+def word_detected(*, index: int, expected: str, spoken: str | None, confidence: float) -> dict[str, Any]:
+    """Provisional. Produced by the fast tier for live display only.
+
+    **This is never a mistake claim.** The provisional tier was measured emitting
+    a wrong word at 0.90 confidence, so it may light a word up as recognized but
+    may not accuse the reciter of anything.
+    """
+    return event(
+        EventType.WORD_DETECTED,
+        word_index=index,
+        expected=expected,
+        spoken=spoken,
+        state="provisional",
+        confidence=round(confidence, 4),
+    )
+
+
+def correction(*, index: int, previous: str, current: str, reason: str) -> dict[str, Any]:
+    """A provisional judgement was revised once better evidence arrived."""
+    return event(
+        EventType.CORRECTION,
+        word_index=index,
+        previous_status=previous,
+        status=current,
+        reason=reason,
     )
 
 

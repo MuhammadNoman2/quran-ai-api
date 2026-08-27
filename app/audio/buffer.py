@@ -143,6 +143,22 @@ class RollingBuffer:
         self._samples = tail.size
         return segment
 
+    def drop_before(self, seconds: float) -> float:
+        """Discard audio before `seconds`. Returns how much was actually dropped.
+
+        Used to advance the analysis window once words have been confirmed, so
+        the cost of a cumulative pass stays bounded on a long recitation.
+        """
+        if seconds <= 0:
+            return 0.0
+        buffered = self.snapshot()
+        cut = min(int(seconds * self._sample_rate), buffered.size)
+        if cut <= 0:
+            return 0.0
+        self._chunks = [buffered[cut:]] if cut < buffered.size else []
+        self._samples = max(0, buffered.size - cut)
+        return cut / self._sample_rate
+
     def clear(self) -> None:
         self._chunks.clear()
         self._samples = 0

@@ -20,6 +20,7 @@ Design rules, all of which matter:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.alignment.base import AlignmentResult
@@ -53,6 +54,37 @@ class ScoreBreakdown:
             "100 - 5.0*substitutions - 5.0*missing - 2.0*extra - 1.0*repetitions; "
             "uncertain findings carry no penalty"
         )
+
+
+def score_reported(
+    categories: "Iterable[ErrorCategory]", total_expected: int, correct: int = 0
+) -> ScoreBreakdown:
+    """Score from the mistakes actually reported over a whole session.
+
+    Streaming advances its analysis window, so the last pass only sees the tail
+    of a long verse. Scoring that pass alone silently forgave every mistake
+    reported earlier - a 50-word verse could report a substitution and still
+    finish on 100. The session's own record of what it told the reciter is the
+    only complete account.
+    """
+    counts = dict.fromkeys(PENALTIES, 0)
+    penalty = 0.0
+    for category in categories:
+        if category in PENALTIES:
+            counts[category] += 1
+            penalty += PENALTIES[category]
+
+    return ScoreBreakdown(
+        score=round(max(0.0, min(100.0, 100.0 - penalty)), 2),
+        correct=correct,
+        substituted=counts[ErrorCategory.WORD_SUBSTITUTION],
+        missing=counts[ErrorCategory.WORD_MISSING],
+        extra=counts[ErrorCategory.WORD_EXTRA],
+        repeated=counts[ErrorCategory.WORD_REPETITION],
+        uncertain=0,
+        total_expected=total_expected,
+        penalty=round(penalty, 2),
+    )
 
 
 def score(results: list[AlignmentResult], total_expected: int) -> ScoreBreakdown:

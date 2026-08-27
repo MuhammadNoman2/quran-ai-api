@@ -36,7 +36,26 @@ class Settings(BaseSettings):
 
     #: Hard cap on buffered audio. Past this the oldest is dropped and the
     #: client is warned, rather than the process growing without limit.
-    stream_max_buffer_seconds: float = 60.0
+    stream_max_buffer_seconds: float = 120.0
+
+    # ─── VAD-driven scheduling (Phase 7) ──────────────────────────────────
+    vad_threshold: float = 0.5
+
+    #: Silence that counts as the end of a phrase and triggers a committed pass.
+    #: Quran recitation pauses at waqf, so this is roughly "the reciter stopped
+    #: for breath or at a stopping point" rather than an arbitrary timer.
+    stream_pause_seconds: float = 0.6
+
+    #: New audio before a provisional (fast, display-only) pass while speech
+    #: continues. Lower feels more live but costs an inference each time.
+    stream_provisional_seconds: float = 2.5
+
+    #: Once this much audio has accumulated, confirmed words are committed and
+    #: their audio is dropped from the analysis window. Cumulative analysis is
+    #: accurate but its cost grows with duration (~2.5s + 0.13 x seconds), and
+    #: Whisper only attends 30s anyway - so on a long verse the window has to
+    #: advance or the server falls further behind with every pass.
+    stream_window_seconds: float = 15.0
     confirm_strategy: str = "agreement"
     word_conf_min: float = 0.90
 

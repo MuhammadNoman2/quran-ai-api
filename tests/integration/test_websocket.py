@@ -20,10 +20,18 @@ def pcm(seconds: float = 5.0, sample_rate: int = 16_000) -> bytes:
     return (np.sin(np.linspace(0, 400, n)) * 8_000).astype("<i2").tobytes()
 
 
-def install(text: str, probs: dict | None = None, tier: Tier = Tier.COMMITTED) -> None:
-    engine = FakeASREngine(text=text, word_probabilities=probs or {}, tier=tier)
-    engine.load()
-    deps.get_registry().register(tier, engine)
+def install(text: str, probs: dict | None = None, tier: Tier | None = None) -> None:
+    """Install a fake engine. By default into *both* tiers.
+
+    The streaming path corroborates a single-sighting mistake against the other
+    tier before reporting it, so a test that stubs only one tier would be
+    silently corroborated by a real model against synthetic audio.
+    """
+    tiers = [tier] if tier is not None else [Tier.COMMITTED, Tier.PROVISIONAL]
+    for t in tiers:
+        engine = FakeASREngine(text=text, word_probabilities=probs or {}, tier=t)
+        engine.load()
+        deps.get_registry().register(t, engine)
 
 
 @pytest.fixture

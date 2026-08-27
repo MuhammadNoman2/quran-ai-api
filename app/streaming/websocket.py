@@ -28,6 +28,7 @@ import logging
 from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
 
 from app.api.deps import get_analyzer, get_auth, get_session_store, get_settings
+from app.asr.base import Tier
 from app.core.config import Settings
 from app.core.errors import APIError
 from app.core.security import AuthProvider
@@ -72,9 +73,16 @@ async def stream(
         return
 
     await websocket.accept()
+    # The fast tier drives the live display; the session's own tier is the one
+    # allowed to report mistakes. When a session explicitly asks for the fast
+    # tier there is no second opinion to add, so it runs alone.
+    provisional = (
+        get_analyzer(Tier.PROVISIONAL) if session.tier is not Tier.PROVISIONAL else None
+    )
     processor = StreamProcessor(
         session=session,
-        analyzer=get_analyzer(session.tier),
+        committed=get_analyzer(session.tier),
+        provisional=provisional,
         config=config,
         send=websocket.send_json,
     )

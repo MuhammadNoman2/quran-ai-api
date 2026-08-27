@@ -49,12 +49,24 @@ class TestSemantics:
         assert message["error_type"] == "word_substitution"
 
 
-class TestUnimplemented:
-    def test_phase_7_events_are_declared_but_not_built(self):
-        """Declared so the protocol can be documented whole; a client must not
-        have to guess whether silence means unsupported or nothing-happened."""
-        assert NOT_YET_EMITTED
-        for kind in NOT_YET_EMITTED:
-            assert not hasattr(events, kind.value), (
-                f"{kind.value} has a builder - move it out of NOT_YET_EMITTED"
-            )
+class TestCompleteness:
+    def test_nothing_is_documented_but_unimplemented(self):
+        """The protocol should not advertise an event the server never sends.
+
+        NOT_YET_EMITTED is now empty; the check stays because it is the mechanism
+        that stops a documented-but-silent event creeping back in.
+        """
+        assert NOT_YET_EMITTED == frozenset()
+
+    def test_every_declared_event_has_a_builder(self):
+        for kind in EventType:
+            assert hasattr(events, kind.value), f"{kind.value} is declared but has no builder"
+
+    def test_speech_and_provisional_builders_exist(self):
+        assert events.speech_started(at=1.0)["event"] == "speech_started"
+        assert events.speech_stopped(at=1.0, silence_seconds=0.8)["silence_seconds"] == 0.8
+        detected = events.word_detected(index=1, expected="a", spoken="a", confidence=1.0)
+        assert detected["state"] == "provisional"
+        assert events.correction(index=1, previous="correct", current="substituted", reason="x")[
+            "previous_status"
+        ] == "correct"

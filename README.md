@@ -4,9 +4,9 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 6 complete** — REST **and** live WebSocket streaming. Quran data,
-normalization, ASR, verse detection, word-level error detection, and realtime
-recitation over a socket.
+**Status: Phase 7 complete** — realtime recitation with voice activity detection,
+two-tier provisional/confirmed feedback, and an advancing analysis window. REST
+and WebSocket APIs are both usable.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -60,8 +60,8 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 281 fast tests, no model download
-pytest -m slow    # 36 integration tests against the real models (~220 MB first run)
+pytest            # 299 fast tests, no model download
+pytest -m slow    # 46 integration tests against the real models (~220 MB first run)
 ```
 
 ## Running in VS Code
@@ -155,6 +155,7 @@ app/
     logging.py            JSON logs; never audio
     security.py           API-key auth and rate limiting
   audio/buffer.py         bounded rolling buffer
+  audio/vad.py            Silero VAD (ONNX, torch-free)
   streaming/
     session.py            session store with a hard capacity limit
     events.py             versioned WebSocket event protocol

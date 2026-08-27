@@ -103,16 +103,35 @@ class RecitationAnalyzer:
             verse_confidence=verse_confidence,
         )
 
-    def compare(self, asr: ASRResult, surah: int, ayah: int) -> list[AlignmentResult]:
+    def compare(
+        self,
+        asr: ASRResult,
+        surah: int,
+        ayah: int,
+        *,
+        speech_end: float | None = None,
+        from_word: int = 0,
+    ) -> list[AlignmentResult]:
         """Align and judge, without building the API response.
 
         Exposed separately so the streaming layer can reuse it per segment.
+
+        `from_word` skips expected words already confirmed and rolled out of the
+        streaming window. Without it, advancing the window would make every
+        earlier word look omitted.
+
+        `speech_end` should come from VAD when available. Falling back to the
+        last recognized word's end time is much weaker evidence, because a
+        hallucinated word carries its own plausible-looking timestamp and so
+        moves the very boundary meant to catch it.
         """
-        expected = self.expected_words(surah, ayah)
+        expected = self.expected_words(surah, ayah)[from_word:]
         spoken = self.spoken_words(asr)
         aligned = self._aligner.align(expected, spoken)
         judged = self._policy.judge(
-            aligned, tier=asr.engine.tier, speech_end=asr.speech_end()
+            aligned,
+            tier=asr.engine.tier,
+            speech_end=speech_end if speech_end is not None else asr.speech_end(),
         )
         self._assert_no_undetectable_claims(judged)
         return judged
