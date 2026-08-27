@@ -59,3 +59,50 @@ class QuranAsset(BaseModel):
     )
     surahs: list[Surah]
     ayat: list[Ayah]
+
+
+# ── Recitation analysis (Phase 4) ─────────────────────────────────────────────
+
+
+class WordAnalysis(BaseModel):
+    """One position in the comparison, as the API reports it."""
+
+    index: int | None = Field(None, description="1-based expected word index; null for extras")
+    expected: str | None = None
+    spoken: str | None = None
+    status: str
+    band: str
+    category: str | None = Field(None, description="Error category, if we are reporting one")
+    confidence: float
+    similarity: float = 0.0
+    note: str | None = Field(
+        None, description="Why a mechanical finding was not reported as a mistake"
+    )
+
+
+class RecitationAnalysis(BaseModel):
+    schema_version: int = SCHEMA_VERSION
+    session_id: str
+    surah: int
+    ayah: int
+    expected_text: str
+    recognized_text: str
+    word_accuracy_score: float = Field(
+        ..., description="Word-level accuracy only. NOT a Tajweed score."
+    )
+    score_formula: str
+    words: list[WordAnalysis]
+    errors: list[WordAnalysis] = Field(
+        default_factory=list, description="Confirmed mistakes only"
+    )
+    observations: list[WordAnalysis] = Field(
+        default_factory=list,
+        description="Possible issues we are not confident enough to call mistakes",
+    )
+    engine: dict[str, str]
+    audio_seconds: float
+    processing_seconds: float
+    verse_detected: bool = Field(
+        False, description="True when the verse was inferred rather than supplied"
+    )
+    verse_confidence: float | None = None

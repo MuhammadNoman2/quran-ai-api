@@ -4,7 +4,8 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 3 complete** (Quran data, normalization, offline ASR, verse detection).
+**Status: Phase 4 complete** (Quran data, normalization, ASR, verse detection,
+word alignment and error detection).
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -35,6 +36,7 @@ pip install -r requirements-dev.txt
 cp .env.example .env
 python scripts/prepare_quran_data.py
 scripts/test_recitation.py
+scripts/evaluate_recitation.py
 ```
 
 **Windows (PowerShell)**
@@ -54,20 +56,32 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 120 fast tests, no model download
-pytest -m slow    # 18 integration tests against the real models (~220 MB first run)
+pytest            # 196 fast tests, no model download
+pytest -m slow    # 36 integration tests against the real models (~220 MB first run)
 ```
 
 ## Transcribing a recitation
 
 ```bash
-python scripts/test_recitation.py \
+python scripts/test_recitation.py
+scripts/evaluate_recitation.py \
   --audio data/test_audio/correct/001_002_husary_1.mp3 --surah 1 --ayah 2
 ```
 
 Add `--tier provisional` for the fast tiny model, or `--json` for machine-readable
 output. The script reports what the model heard and which words fall below the
-confidence gate; it does **not** judge the reciter - that is Phase 4.
+confidence gate; it does **not** judge the reciter - use the evaluation script for that.
+
+## Measuring accuracy
+
+```bash
+python scripts/evaluate_recitation.py
+```
+
+Reports word accuracy, substitution/deletion/insertion rates and - the number that
+matters - the **false correction rate**: how often the system tells a reciter they
+made a mistake when they did not. Add your own recordings first; see
+`data/test_audio/README.md`.
 
 ## Project layout
 
@@ -83,11 +97,19 @@ app/
   quran/
     repository.py         read-only access to the prepared Quran asset
     verse_locator.py      Scenario B: which verse is this? (n-gram + fuzzy)
+  alignment/
+    base.py               ExpectedWord, SpokenWord, AlignmentResult
+    word_alignment.py     Needleman-Wunsch over word tokens
+  recitation/
+    confidence.py         the gates that prevent false corrections
+    scoring.py            deterministic word-accuracy score
+    analyzer.py           orchestrates the pipeline
     text_normalizer.py    the four normalization representations
 data/quran/quran.json     prepared asset (git-ignored, built by script)
 data/test_audio/          evaluation corpus (see its README)
 scripts/prepare_quran_data.py
 scripts/test_recitation.py
+scripts/evaluate_recitation.py
 tests/unit/  tests/integration/
 docs/
 ```
