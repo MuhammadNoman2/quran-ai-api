@@ -17,6 +17,8 @@ from app.core.config import Settings, settings
 from app.core.security import AuthProvider, RateLimiter
 from app.quran.repository import QuranRepository
 from app.quran.verse_locator import VerseLocator
+from app.pronunciation.analyzer import PronunciationAnalyzer
+from app.pronunciation.muaalem import MuaalemRecognizer
 from app.recitation.analyzer import RecitationAnalyzer
 from app.streaming.session import SessionStore
 
@@ -57,6 +59,12 @@ def get_session_store() -> SessionStore:
     return SessionStore(config.max_concurrent_sessions, config.max_session_seconds)
 
 
+@lru_cache(maxsize=1)
+def get_pronunciation() -> PronunciationAnalyzer:
+    """Phoneme analysis. Reports itself unavailable where torch cannot run."""
+    return PronunciationAnalyzer(MuaalemRecognizer(device=get_settings().device))
+
+
 def get_engine(tier: Tier = Tier.COMMITTED) -> ASREngine:
     return get_registry().get(tier)
 
@@ -86,7 +94,7 @@ def reset_caches() -> None:
     """
     for fn in (
         get_settings, get_repository, get_locator, get_registry,
-        get_auth, get_rate_limiter, get_session_store,
+        get_auth, get_rate_limiter, get_session_store, get_pronunciation,
     ):
         clear = getattr(fn, "cache_clear", None)
         if clear is not None:

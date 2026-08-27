@@ -106,3 +106,63 @@ class RecitationAnalysis(BaseModel):
         False, description="True when the verse was inferred rather than supplied"
     )
     verse_confidence: float | None = None
+
+
+# ── Phonetics and pronunciation (Phase 8) ─────────────────────────────────────
+
+
+class PhoneticWord(BaseModel):
+    index: int = Field(..., description="1-based word position within the ayah")
+    uthmani: str
+    phonemes: str = Field(..., description="Quran Phonetic Script for this word")
+
+
+class PhoneticsResponse(BaseModel):
+    """What *should* be recited, phonetically. Needs no model, always available."""
+
+    surah: int
+    ayah: int
+    uthmani: str
+    phonemes: str
+    words: list[PhoneticWord]
+    tajweed_rules: list[str] = Field(
+        ..., description="Rules that apply somewhere in this ayah"
+    )
+    sifat: list[dict[str, object]] = Field(
+        default_factory=list,
+        description="Ten articulation attributes per phoneme group",
+    )
+    rewaya: str
+    madd_lengths: dict[str, int] = Field(
+        ..., description="The madd counts these expectations were built from"
+    )
+
+
+class PronunciationFindingOut(BaseModel):
+    kind: str = Field(..., description="articulation | tashkeel | tajweed | unknown")
+    operation: str
+    word_index: int | None = None
+    expected_phonemes: str
+    spoken_phonemes: str
+    expected_length: int | None = None
+    spoken_length: int | None = None
+    tajweed_rule: str | None = None
+    tajweed_rule_ar: str | None = None
+    detail: str | None = None
+
+
+class PronunciationResponse(BaseModel):
+    available: bool = Field(
+        ...,
+        description=(
+            "False means no phoneme analysis was performed. `findings` being empty "
+            "then means 'not checked', NOT 'nothing wrong'."
+        ),
+    )
+    surah: int
+    ayah: int
+    reference_phonemes: str
+    recognized_phonemes: str | None = None
+    findings: list[PronunciationFindingOut] = Field(default_factory=list)
+    unavailable_reason: str | None = None
+    engine: str | None = None

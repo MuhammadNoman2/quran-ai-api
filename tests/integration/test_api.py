@@ -345,3 +345,76 @@ class TestOpenAPI:
 
     def test_docs_page_renders(self, client):
         assert client.get("/docs").status_code == 200
+
+
+class TestPhonetics:
+    def test_returns_expected_phonemes(self, client):
+        body = client.get("/api/v1/surahs/1/ayahs/2/phonetics").json()
+        assert body["phonemes"]
+        assert len(body["words"]) == 4
+        assert all(w["phonemes"] for w in body["words"])
+
+    def test_names_the_tajweed_rules_present(self, client):
+        body = client.get("/api/v1/surahs/1/ayahs/2/phonetics").json()
+        assert "Normal Madd" in body["tajweed_rules"]
+
+    def test_discloses_the_recitation_style_it_assumed(self, client):
+        """Hafs permits a range of madd lengths, so the expectations are only
+        correct for a stated style. Returning them silently would invite a client
+        to treat one school's timing as universal."""
+        body = client.get("/api/v1/surahs/1/ayahs/2/phonetics").json()
+        assert body["rewaya"] == "hafs"
+        assert set(body["madd_lengths"]) == {"monfasel", "mottasel", "mottasel_waqf", "aared"}
+
+    def test_carries_articulation_attributes(self, client):
+        body = client.get("/api/v1/surahs/112/ayahs/1/phonetics").json()
+        assert body["sifat"]
+        assert "ghonna" in body["sifat"][0]
+
+    def test_unknown_ayah_is_404(self, client):
+        assert client.get("/api/v1/surahs/1/ayahs/99/phonetics").status_code == 404
+
+
+class TestPronunciationEndpoint:
+    def test_reports_unavailability_honestly(self, client):
+        """On a machine without torch there is no phoneme model, and the API must
+        say so rather than returning an empty findings list that reads as a pass."""
+        r = client.post(
+            "/api/v1/recitation/pronunciation",
+            files=upload(),
+            data={"surah": 1, "ayah": 2},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        if not body["available"]:
+            assert body["findings"] == []
+            assert body["unavailable_reason"]
+            assert body["reference_phonemes"], "expected phonetics are still useful"
+
+    def test_unknown_ayah_is_404(self, client):
+        r = client.post(
+            "/api/v1/recitation/pronunciation",
+            files=upload(),
+            data={"surah": 1, "ayah": 99},
+        )
+        assert r.status_code == 404
+
+    def test_rejects_bad_audio(self, client):
+        r = client.post(
+            "/api/v1/recitation/pronunciation",
+            files=upload(b"not audio"),
+            data={"surah": 1, "ayah": 2},
+        )
+        assert r.status_code == 400
+
+
+class TestHealthPhonemeCapability:
+    def test_reports_whether_phoneme_analysis_can_run(self, client):
+        body = client.get("/api/v1/health").json()
+        assert "phoneme_analysis" in body
+        assert body["phoneme_analysis"]["available"] in {"true", "false"}
+
+    def test_gives_a_reason_when_it_cannot(self, client):
+        capability = client.get("/api/v1/health").json()["phoneme_analysis"]
+        if capability["available"] == "false":
+            assert capability["reason"]

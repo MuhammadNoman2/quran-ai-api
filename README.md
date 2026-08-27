@@ -4,9 +4,9 @@ A local-first API for Quran recitation recognition and word-level error detectio
 Client applications integrate recitation features over REST and WebSocket without
 knowing anything about the underlying models.
 
-**Status: Phase 7 complete** — realtime recitation with voice activity detection,
-two-tier provisional/confirmed feedback, and an advancing analysis window. REST
-and WebSocket APIs are both usable.
+**Status: Phase 8 complete** — realtime recitation, plus phoneme-level reference
+phonetics and a pronunciation pipeline that reports honestly when the acoustic
+phoneme model cannot run.
 See `docs/` for the model selection, architecture and cost analysis.
 
 ## Documentation
@@ -17,6 +17,7 @@ See `docs/` for the model selection, architecture and cost analysis.
 | [`docs/architecture.md`](docs/architecture.md) | Layering, ASR abstraction, alignment, streaming design |
 | [`docs/api.md`](docs/api.md) | Endpoints, response shape, error codes, latency |
 | [`docs/realtime.md`](docs/realtime.md) | WebSocket protocol, events, scheduling |
+| [`docs/phonetics.md`](docs/phonetics.md) | Phonemes, Tajweed, and what is actually detectable |
 | [`docs/cost-and-deployment.md`](docs/cost-and-deployment.md) | GPU/CPU costs, hosting, scaling ladder |
 
 ## Requirements
@@ -62,7 +63,7 @@ python scripts\prepare_quran_data.py
 ## Tests
 
 ```bash
-pytest            # 299 fast tests, no model download
+pytest            # 336 fast tests, no model download
 pytest -m slow    # 46 integration tests against the real models (~220 MB first run)
 ```
 

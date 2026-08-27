@@ -79,6 +79,16 @@ class Settings(BaseSettings):
     #: Requests per minute per key. 0 disables limiting.
     rate_limit_per_minute: int = 0
 
+    # ─── Recitation style (Phase 8) ───────────────────────────────────────
+    #: Hafs permits a range for several madd types, so these are a legitimate
+    #: teaching choice, not constants. Getting them wrong would flag correct
+    #: recitation as wrong.
+    rewaya: str = "hafs"
+    madd_monfasel_len: int = 4
+    madd_mottasel_len: int = 4
+    madd_mottasel_waqf: int = 4
+    madd_aared_len: int = 4
+
     store_audio: bool = False
     log_level: str = "INFO"
 
