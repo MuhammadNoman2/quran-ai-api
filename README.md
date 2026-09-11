@@ -1,14 +1,66 @@
+<div align="center">
+
 # Quran AI Recitation & Correction API
 
-A local-first API for Quran recitation recognition and word-level error detection.
-Client applications integrate recitation features over REST and WebSocket without
-knowing anything about the underlying models.
+**Realtime Quran recitation recognition with word-level mistake detection, over REST and WebSocket, running on an ordinary CPU.**
 
-**Status: all 12 phases complete.** Quran data, Arabic normalization, offline and
-streaming ASR, verse detection, word-level error detection, phoneme and Tajweed
-analysis, verified recitation audio, benchmarks, and Docker deployment — verified
-end to end in containers.
-See `docs/` for the model selection, architecture and cost analysis.
+![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-REST%20%2B%20WebSocket-009688?logo=fastapi&logoColor=white)
+![CTranslate2](https://img.shields.io/badge/ASR-faster--whisper%20%2F%20CTranslate2-555)
+![ONNX](https://img.shields.io/badge/VAD-Silero%20ONNX-005CED?logo=onnx&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
+![Tests](https://img.shields.io/badge/tests-381%20fast%20%2B%2046%20integration-3fb950)
+
+**Designed and built by [Muhammad Noman](https://github.com/MuhammadNoman2)**
+
+</div>
+
+---
+
+## Overview
+
+Apps that teach or check Quran recitation need to answer two questions while the user is still reciting:
+*which verse is this?* and *did they make a mistake, and on which word?*
+Generic speech-to-text answers neither well. It hallucinates words, it's slow on a CPU, and a naive "diff" wrongly
+tells correct reciters that they made mistakes.
+
+This API solves that as a service. A client app (mobile or web) streams microphone audio over a WebSocket and gets
+back **word-by-word events**: provisional, confirmed correct, or confirmed mistake. The client never has to
+know anything about the models underneath.
+
+### Highlights
+
+- **Two-tier streaming ASR.** A fast model gives instant *provisional* feedback. A stronger model *confirms* before anything is shown as a mistake.
+- **Confidence gating against false corrections.** Uncertain results are returned as `observations`, never as `errors`. The key metric tracked is the **false correction rate**.
+- **Verse detection.** Identifies which ayah is being recited from audio alone (n-gram + fuzzy matching).
+- **Word alignment.** Needleman–Wunsch alignment of spoken words against the canonical text, with substitution / deletion / insertion scoring.
+- **Tajweed and phoneme analysis** (optional image), with an honest record of what is and is not reliably detectable.
+- **CPU-only inference.** CTranslate2 + ONNX Runtime, no PyTorch and no GPU needed on the default path. Measured real-time factor of **0.12** on a 60.7 s recitation (provisional tier; see [`docs/performance.md`](docs/performance.md)).
+- **Production concerns built in:** API-key auth, rate limiting, bounded session store, structured JSON logs (never containing audio), versioned event protocol, Docker images.
+- **Canonical text protection.** The Tanzil text is stored byte-for-byte unmodified, and a test enforces it.
+
+### Architecture
+
+```mermaid
+flowchart LR
+    C[Client app<br/>mobile / web] -- audio frames --> WS[WebSocket /stream]
+    C -- REST --> API[FastAPI routes]
+    WS --> SM[Session manager<br/>buffer + VAD]
+    SM --> A[Recitation analyzer]
+    API --> A
+    A --> ASR{{ASREngine interface}}
+    ASR --> T1[Provisional tier<br/>fast model]
+    ASR --> T2[Confirmation tier<br/>stronger model]
+    A --> G[Confidence gates]
+    G --> AL[Word alignment<br/>Needleman–Wunsch]
+    AL --> Q[(Quran repository<br/>Tanzil text, SQLite)]
+    A -- errors / observations events --> WS
+```
+
+Upper layers depend only on interfaces. Swapping or upgrading a model is a configuration change, not a rewrite.
+Full design rationale: [`docs/architecture.md`](docs/architecture.md).
+
+---
 
 ## Documentation
 
@@ -42,11 +94,6 @@ source .venv/bin/activate
 pip install -r requirements-dev.txt
 cp .env.example .env
 python scripts/prepare_quran_data.py
-scripts/test_recitation.py
-scripts/evaluate_recitation.py
-web/                    the live demo page (served at /)
-examples/               python, streaming and browser clients
-start                   one-command launcher
 ```
 
 **Windows (PowerShell)**
@@ -144,11 +191,7 @@ re-introduces the false-correction problem the server works to prevent.
 ## Transcribing a recitation
 
 ```bash
-python scripts/test_recitation.py
-scripts/evaluate_recitation.py
-web/                    the live demo page (served at /)
-examples/               python, streaming and browser clients
-start                   one-command launcher \
+python scripts/test_recitation.py \
   --audio data/test_audio/correct/001_002_husary_1.mp3 --surah 1 --ayah 2
 ```
 
@@ -172,9 +215,6 @@ separate 2.82 GB image. See [`docs/deployment.md`](docs/deployment.md).
 
 ```bash
 python scripts/evaluate_recitation.py
-web/                    the live demo page (served at /)
-examples/               python, streaming and browser clients
-start                   one-command launcher
 ```
 
 Reports word accuracy, substitution/deletion/insertion rates and - the number that
@@ -246,5 +286,10 @@ separate field, and a test asserts the canonical text matches the source byte fo
 
 ## Licence
 
-Application code: TBD. Third-party model and data licences are catalogued in
-`docs/model-selection.md` §6.
+Application code © 2026 Muhammad Noman. All rights reserved: no open-source licence has been granted yet.
+Third-party model and data licences are catalogued in `docs/model-selection.md` §6.
+
+## Author
+
+**Muhammad Noman**: full-stack engineer focused on AI systems and secure application development.
+More work on my [GitHub profile](https://github.com/MuhammadNoman2).
